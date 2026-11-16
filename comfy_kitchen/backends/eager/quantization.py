@@ -1048,8 +1048,9 @@ def int8_linear(
     x_8, x_scale = quantize_int8_rowwise(x_2d)
 
     # Compute: x_8 @ weight.T using fast int8 matmul when shape constraints allow it.
-    # weight is [N, K], we need [K, N] for matmul so transpose
-    result = _int8_matmul_accumulate(x_8, weight.T.contiguous())
+    # weight is [N, K]; its transposed view is the [K, N] operand. torch._int_mm takes
+    # the view directly, so there is no need to copy the weight on every call.
+    result = _int8_matmul_accumulate(x_8, weight.T)
 
     # Scale back efficiently: result * (weight_scale * x_scale)
     # Process in chunks to avoid materializing large float32 tensor
